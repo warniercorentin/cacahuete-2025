@@ -1,0 +1,56 @@
+body {
+    font-family: sans-serif;
+    background: #f7f3e9;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+}
+
+h1, h2 {
+    color: #b22222;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 8px;
+    font-size: 18px;
+    border-radius: 8px;
+    border: none;
+    background: #e4decf;
+    cursor: pointer;
+}
+button:hover {
+    background: #d8d2c1;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 300px;
+    margin: auto;
+}
+
+.alert {
+    background: #ffdddd;
+    color: #a00;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.confirm-box {
+    margin-top: 20px;
+}
+
+.footer-info {
+    margin-top: 25px;
+    font-size: 16px;
+    color: #444;
+}
+
+.expired {
+    font-size: 22px;
+    color: #800;
+    padding: 20px;
+}
