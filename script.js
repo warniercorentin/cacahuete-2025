@@ -11,6 +11,30 @@ const participants = [
     "Fanny",
     "Corentin"
 ];
+// ----------------------------------------------------------
+// Reset secret (uniquement pour le créateur)
+// Usage : ajouter ?reset=TON_CODE_SECRET dans l'URL
+// ----------------------------------------------------------
+
+const SECRET_RESET_CODE = "RESET"; // Mets ta clé secrète ici
+
+function checkResetRequest() {
+    const params = new URLSearchParams(window.location.search);
+    const resetCode = params.get("reset");
+
+    if (resetCode && resetCode === SECRET_RESET_CODE) {
+        localStorage.clear();
+        document.getElementById("app").innerHTML = `
+            <h1>🔄 Reset effectué</h1>
+            <p>Toutes les données ont été effacées avec succès.</p>
+            <button onclick="window.location.href='index.html'">Recharger</button>
+        `;
+        throw new Error("Reset triggered");
+    }
+}
+
+// Vérifie immédiatement si un reset est demandé
+checkResetRequest();
 
 // Date limite : après cette date → purge + blocage
 const expirationDate = new Date("2025-12-27"); // Le 27 à 00:00 = après le 26
