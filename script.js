@@ -35,8 +35,9 @@ if (today >= expirationDate) {
 
 // ----------------------------------------------------------
 // Reset secret (pour toi uniquement)
+// Usage : ?reset=TON_CODE_SECRET
 // ----------------------------------------------------------
-const SECRET_RESET_CODE = "RESET"; // change la valeur si tu veux
+const SECRET_RESET_CODE = "WARNIER42"; // change la valeur si tu veux
 
 function checkResetRequest() {
     const params = new URLSearchParams(window.location.search);
@@ -77,21 +78,16 @@ function render(html) {
 
 // ----------------------------------------------------------
 // Écran 1 – Sélection du participant
-// Boutons désactivés si déjà utilisés
+// Tous les boutons semblent identiques.
+// Si un participant a déjà encodé, le clic sera ignoré dans startFor().
 // ----------------------------------------------------------
 let currentUser = null;
 let selectedTarget = null;
 
 function screenChooseParticipant() {
-    const data = loadData();
-
-    const buttonsHtml = participants.map(name => {
-        const already = !!data[name];
-        const disabledAttr = already ? "disabled class='used'" : "";
-        const onClick = already ? "" : `onclick="startFor('${name}')"`;
-
-        return `<button ${onClick} ${disabledAttr}>${name}</button>`;
-    }).join("");
+    const buttonsHtml = participants
+        .map(name => `<button onclick="startFor('${name}')">${name}</button>`)
+        .join("");
 
     render(`
         <h1>Cacahuète 2025</h1>
@@ -107,13 +103,14 @@ function screenChooseParticipant() {
 
 // ----------------------------------------------------------
 // Démarrage pour un participant
-// Impossible de revoir son tirage : s’il existe déjà → retour accueil
+// Si ce participant a déjà encodé : ne rien faire (aucun effet visible).
 // ----------------------------------------------------------
 function startFor(name) {
     const data = loadData();
 
     if (data[name]) {
-        screenChooseParticipant();
+        // Tirage déjà encodé pour ce nom : on ne montre rien, pas de fuite.
+        // Aucune navigation, l'écran reste inchangé.
         return;
     }
 
@@ -124,9 +121,7 @@ function startFor(name) {
 
 // ----------------------------------------------------------
 // Écran 2 – Sélection du tiré
-// Impossible de tirer soi-même
-// Impossible de tirer quelqu’un déjà attribué
-// Explication volontairement générique (secret)
+// Impossible de se tirer soi-même et de tirer quelqu'un déjà attribué
 // ----------------------------------------------------------
 function showSelectionScreen(alertMsg = "") {
     render(`
@@ -151,6 +146,7 @@ function showSelectionScreen(alertMsg = "") {
 
 // ----------------------------------------------------------
 // Contrôle des doublons + interdiction de se tirer soi-même
+// Message générique pour éviter toute fuite d'information.
 // ----------------------------------------------------------
 function selectTarget(target) {
     const data = loadData();
@@ -189,7 +185,8 @@ function confirmChoice() {
 }
 
 // ----------------------------------------------------------
-// Sauvegarde + retour écran d'accueil
+// Sauvegarde
+// Après sauvegarde, aucun bouton de retour : message final uniquement.
 // ----------------------------------------------------------
 function saveChoice() {
     const data = loadData();
@@ -198,8 +195,8 @@ function saveChoice() {
 
     render(`
         <h1>Merci !</h1>
-        <p>C’est enregistré.</p>
-        <button onclick="screenChooseParticipant()">Retour à l’accueil</button>
+        <p>Ton tirage a été enregistré.</p>
+        <p>Tu peux maintenant fermer cette page.</p>
     `);
 }
 
