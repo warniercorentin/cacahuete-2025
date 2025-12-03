@@ -200,5 +200,3 @@ function saveChoice() {
     `);
 }
 
-// Lancement
-screenChooseParticipant();
