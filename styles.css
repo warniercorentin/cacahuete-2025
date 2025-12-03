@@ -23,6 +23,14 @@ button:hover {
     background: #d8d2c1;
 }
 
+/* Boutons désactivés : même style que les actifs */
+button:disabled,
+button.used {
+    opacity: 1;
+    cursor: pointer;
+    background: #e4decf;
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
