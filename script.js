@@ -11,12 +11,32 @@ const participants = [
     "Fanny",
     "Corentin"
 ];
-// ----------------------------------------------------------
-// Reset secret (uniquement pour le créateur)
-// Usage : ajouter ?reset=TON_CODE_SECRET dans l'URL
-// ----------------------------------------------------------
 
-const SECRET_RESET_CODE = "RESET"; // Mets ta clé secrète ici
+// Date limite : après cette date → purge + blocage
+const expirationDate = new Date("2025-12-27");
+const today = new Date();
+
+// Récupération du conteneur
+const appDiv = document.getElementById("app");
+
+// ----------------------------------------------------------
+// Expiration
+// ----------------------------------------------------------
+if (today >= expirationDate) {
+    localStorage.clear();
+    appDiv.innerHTML = `
+        <div class="expired">
+            L’application de cacahuète est expirée depuis le 26 décembre 2025.<br><br>
+            Les données ont été supprimées.
+        </div>
+    `;
+    throw new Error("Application expirée");
+}
+
+// ----------------------------------------------------------
+// Reset secret (pour toi uniquement)
+// ----------------------------------------------------------
+const SECRET_RESET_CODE = "RESET"; // change la valeur si tu veux
 
 function checkResetRequest() {
     const params = new URLSearchParams(window.location.search);
@@ -24,39 +44,19 @@ function checkResetRequest() {
 
     if (resetCode && resetCode === SECRET_RESET_CODE) {
         localStorage.clear();
-        document.getElementById("app").innerHTML = `
-            <h1>🔄 Reset effectué</h1>
-            <p>Toutes les données ont été effacées avec succès.</p>
+        appDiv.innerHTML = `
+            <h1>Reset effectué</h1>
+            <p>Toutes les données locales ont été effacées.</p>
             <button onclick="window.location.href='index.html'">Recharger</button>
         `;
         throw new Error("Reset triggered");
     }
 }
 
-// Vérifie immédiatement si un reset est demandé
 checkResetRequest();
-
-// Date limite : après cette date → purge + blocage
-const expirationDate = new Date("2025-12-27"); // Le 27 à 00:00 = après le 26
-const today = new Date();
-
-// Purge si expiration dépassée
-if (today >= expirationDate) {
-    localStorage.clear();
-    document.getElementById("app").innerHTML = `
-        <div class="expired">
-            🎄 L’application de cacahuète est expirée depuis le 26 décembre 2025.<br><br>
-            Les données ont été supprimées.
-        </div>
-    `;
-    throw new Error("Application expirée");
-}
-
 
 // ----------------------------------------------------------
 // Stockage
-// - localStorage.setItem("cacahuete", JSON.stringify({ donneur: tire }))
-// Structure : { "GrandPa" : "Julie", ... }
 // ----------------------------------------------------------
 function loadData() {
     return JSON.parse(localStorage.getItem("cacahuete") || "{}");
@@ -64,31 +64,40 @@ function loadData() {
 function saveData(data) {
     localStorage.setItem("cacahuete", JSON.stringify(data));
 }
-
 function countAssigned() {
     return Object.keys(loadData()).length;
 }
 
-
 // ----------------------------------------------------------
-// Rendu dynamique dans #app
+// Rendu
 // ----------------------------------------------------------
 function render(html) {
-    document.getElementById("app").innerHTML = html;
+    appDiv.innerHTML = html;
 }
 
+// ----------------------------------------------------------
+// Écran 1 – Sélection du participant
+// Boutons désactivés si déjà utilisés
+// ----------------------------------------------------------
+let currentUser = null;
+let selectedTarget = null;
 
-// ----------------------------------------------------------
-// Écran 1 : choix du participant
-// ----------------------------------------------------------
 function screenChooseParticipant() {
+    const data = loadData();
+
+    const buttonsHtml = participants.map(name => {
+        const already = !!data[name];
+        const disabledAttr = already ? "disabled class='used'" : "";
+        const onClick = already ? "" : `onclick="startFor('${name}')"`;
+
+        return `<button ${onClick} ${disabledAttr}>${name}</button>`;
+    }).join("");
+
     render(`
-        <h1>🎄 Cacahuète 2025</h1>
+        <h1>Cacahuète 2025</h1>
         <h2>Qui es-tu ?</h2>
 
-        <div class="grid">
-            ${participants.map(p => `<button onclick="startFor('${p}')">${p}</button>`).join("")}
-        </div>
+        <div class="grid">${buttonsHtml}</div>
 
         <div class="footer-info">
             ${countAssigned()} / 8 participants ont déjà encodé leur cacahuète.
@@ -96,36 +105,32 @@ function screenChooseParticipant() {
     `);
 }
 
-
 // ----------------------------------------------------------
-// Écran 2 : choix du tiré
+// Démarrage pour un participant
+// Impossible de revoir son tirage : s’il existe déjà → retour accueil
 // ----------------------------------------------------------
-let currentUser = null;
-let selectedTarget = null;
-
 function startFor(name) {
-    currentUser = name;
+    const data = loadData();
 
-    const stored = loadData();
-    const already = stored[name];
-
-    // Si déjà encodé → afficher directement le tirage
-    if (already) {
-        render(`
-            <h1>🎄 Cacahuète 2025</h1>
-            <p>Tu es : <strong>${name}</strong></p>
-            <h2>Tu as pêché : <span style="color:green">${already}</span></h2>
-            <button onclick="screenChooseParticipant()">Retour</button>
-        `);
+    if (data[name]) {
+        screenChooseParticipant();
         return;
     }
 
+    currentUser = name;
+    selectedTarget = null;
     showSelectionScreen();
 }
 
+// ----------------------------------------------------------
+// Écran 2 – Sélection du tiré
+// Impossible de tirer soi-même
+// Impossible de tirer quelqu’un déjà attribué
+// Explication volontairement générique (secret)
+// ----------------------------------------------------------
 function showSelectionScreen(alertMsg = "") {
     render(`
-        <h1>🎄 Cacahuète 2025</h1>
+        <h1>Cacahuète 2025</h1>
         <p>Tu es : <strong>${currentUser}</strong></p>
 
         ${alertMsg ? `<div class="alert">${alertMsg}</div>` : ""}
@@ -144,16 +149,22 @@ function showSelectionScreen(alertMsg = "") {
     `);
 }
 
-
 // ----------------------------------------------------------
-// Vérification doublon + confirmation
+// Contrôle des doublons + interdiction de se tirer soi-même
 // ----------------------------------------------------------
 function selectTarget(target) {
-    const stored = loadData();
-    const assignedValues = Object.values(stored);
+    const data = loadData();
+    const assignedValues = Object.values(data);
 
+    // Impossible de se tirer soi-même
+    if (target === currentUser) {
+        showSelectionScreen("Ce choix n'est pas possible. Merci de choisir une autre personne.");
+        return;
+    }
+
+    // Personne déjà attribuée
     if (assignedValues.includes(target)) {
-        showSelectionScreen("Cette personne a déjà été attribuée. Merci de choisir quelqu’un d’autre.");
+        showSelectionScreen("Ce choix n'est pas possible. Merci de choisir une autre personne.");
         return;
     }
 
@@ -161,9 +172,12 @@ function selectTarget(target) {
     confirmChoice();
 }
 
+// ----------------------------------------------------------
+// Confirmation
+// ----------------------------------------------------------
 function confirmChoice() {
     render(`
-        <h1>🎄 Confirmation</h1>
+        <h1>Confirmation</h1>
         <p>Tu es : <strong>${currentUser}</strong></p>
         <p>Tu as sélectionné : <strong>${selectedTarget}</strong></p>
 
@@ -174,9 +188,8 @@ function confirmChoice() {
     `);
 }
 
-
 // ----------------------------------------------------------
-// Sauvegarde
+// Sauvegarde + retour écran d'accueil
 // ----------------------------------------------------------
 function saveChoice() {
     const data = loadData();
@@ -184,12 +197,11 @@ function saveChoice() {
     saveData(data);
 
     render(`
-        <h1>🎄 Merci !</h1>
+        <h1>Merci !</h1>
         <p>C’est enregistré.</p>
-        <button onclick="screenChooseParticipant()">OK</button>
+        <button onclick="screenChooseParticipant()">Retour à l’accueil</button>
     `);
 }
 
-
-// Lancer l’écran d’accueil
+// Lancement
 screenChooseParticipant();
