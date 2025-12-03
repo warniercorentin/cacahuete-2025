@@ -23,13 +23,8 @@ button:hover {
     background: #d8d2c1;
 }
 
-/* Boutons désactivés : même style que les actifs */
-button:disabled,
-button.used {
-    opacity: 1;
-    cursor: pointer;
-    background: #e4decf;
-}
+/* Plus de style spécial pour les boutons "désactivés".
+   Ils n'existent plus visuellement. */
 
 .grid {
     display: grid;
